@@ -21,7 +21,9 @@ admissions <- admissions %>%
          !is.na(number_applied),
          number_enrolled > 0,
          number_applied > 0) %>%
-  select(-year, -sex, -ftpt)
+  select(-year, -sex, -ftpt) %>%
+  mutate(p = number_enrolled / number_applied,
+         se = sqrt(p*(1 - p)/ number_applied))
 
 dir <- dir %>%
   filter(unitid %in% admissions$unitid) %>%
