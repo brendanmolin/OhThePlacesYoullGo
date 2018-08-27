@@ -59,23 +59,80 @@ plot_school_prob <- function(list_of_unitid) {
     labs(title = 'Your Chances of Getting Admitted', x = 'schools', y = "percent of applicants admitted")
 }
 
+plot_top_bottom_10 <- function(df) {
+  df %>%
+    arrange(p) %>%
+    filter(row_number() %in% c(1:10, (n()-9):n())) %>%
+    mutate(top_bottom = row_number() <= n()/2) %>%
+    ggplot(aes(x = reorder(inst_name, -p), y = p, fill = top_bottom)) +
+    geom_bar(stat = 'identity', position = 'dodge') +
+    geom_errorbar( aes(ymin=p-1.96*se, ymax=p+1.96*se), width=0.4, colour="blue", size=0.5) +
+    coord_flip() +
+    scale_y_continuous(labels = percent, limits = c(0, 1)) +
+    labs(title = 'Your Chances of Getting Admitted', x = 'schools', y = "percent of applicants admitted")
+}
+
 server <- function(input, output) {
   
+  # Gets school unitid numbers from names
   lof_unitid <- eventReactive(input$schools, sapply(input$schools, get_unitid))
   
+  ## APPLY tab
+  # Runs and creates plot of simulation
   simRun <- eventReactive(input$go, {
     sim_n(1000, lof_unitid(), c(), admissions)
   })
-  
+  # Creates plot of admission probability
   probPlot <- eventReactive(input$schools, {
     plot_school_prob(lof_unitid())
   })
-  
+  # Renders simulation plot
   output$sim_plot <- renderPlot({
     print(simRun())
   })
-  
+  # Renders admission probability plot
   output$prop_plot <- renderPlot({
     print(probPlot())
+  })
+  
+  ## EXPLORE tab
+  # Filters schools
+  key_states <- eventReactive(input$go_explore, {
+    if(input$explore_state == 'All') {
+      return(unique(dir$state_abbr))
+    } else {
+      input$explore_state
+    }
+  })
+  df_subset <- eventReactive(input$go_explore, {
+    explore_dir <- dir %>%
+      inner_join(admissions, by = c("unitid" = "unitid")) %>%
+      filter(state_abbr %in% key_states(),
+             p >= input$explore_difficulty[1] & p <= input$explore_difficulty[2],
+             inst_control %in% input$explore_control)
+    
+    return(explore_dir)
+  })
+  
+  # Run
+  plot_exp <- eventReactive(input$go_explore, plot_top_bottom_10(df_subset()))
+  plot_map <- eventReactive(input$go_explore, {
+    df <- df_subset()
+    leaflet(data = df) %>%
+      addTiles() %>%
+      addMarkers(lng = ~longitude,
+                 lat = ~latitude,
+                 popup = paste(df$inst_name, "<br>",
+                               "Type:", df$inst_control))
+  })
+  
+  # Plot Map
+  # Renders prob plot
+  output$explore_prop_plot <- renderPlot({
+    print(plot_exp())
+  })
+  
+  output$explore_map <- renderLeaflet({
+    print(plot_map())
   })
 }

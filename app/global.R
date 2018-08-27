@@ -2,6 +2,7 @@ library(shiny)
 library(dplyr)
 library(ggplot2)
 library(scales)
+library(leaflet)
 
 # Import
 admissions <- read.csv("data/admissions.csv", stringsAsFactors = FALSE)
