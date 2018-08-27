@@ -16,9 +16,13 @@ API Documentation: https://ed-data-portal.urban.org/documentation/
 
 We use the following tools:
 * R
-  * ggplot
-  * shinyr
+  * shiny
+  * dplyr
+  * ggplot2
+  * scales
+  * leaflet
   * education_data
+* shinyapps.io
 
 ## Repository
 
